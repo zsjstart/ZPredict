@@ -533,124 +533,46 @@ func RecvByRawConn(rawConn *ipv4.RawConn, srcIP, dstIP net.IP, srcPort, dstPort,
 	return nil, nil
 }
 
-// RecvByRawConn receives TCP/UDP/ICMP packet over ipv4.RawConn.
-// icmp []uint16: TypeCode, Id, Seq.
-func RecvByRawConnV2(rawConn *ipv4.RawConn, srcIP, dstIP net.IP, srcPort, dstPort, txid uint16, proto, flags, needle string, ack uint32, icmp []uint16) (*ipv4.Header, gopacket.Packet) {
-	if rawConn == nil {
-		c, rc := CreateRawConn(proto)
-		defer c.Close()
-		defer rc.Close()
-		rawConn = rc
+func RscanIpidVelocityTestIPV2(ip, proto, flag string, port uint16, domain string) (int) {
+	ipid := -1
+	localIP := GetLocalIP()
+	extIP := net.ParseIP(ip).To4()
+	timeout := 950 * time.Millisecond
+	var riph *ipv4.Header
+	//var packet gopacket.Packet
+	switch proto {
+	case "icmp":
+		id := uint16(rand.Int()) & 0xffff
+		seq := uint16(rand.Int()) & 0xffff
+		SendIcmpByRawConn(nil, localIP, extIP, []uint16{8*256, id, seq}, 1, nil)
+		riph, _ = RscanRecvByRawConn(nil, extIP, localIP, 0, 0, 0, "icmp", "", "", 0, []uint16{0, id, seq}, timeout) 
+	case "tcp":
+		localPort := 10000 + (uint16(rand.Int()) & 0xffff) % 55535
+		seq := uint32(rand.Int()) & 0xffffffff
+		if flag == "SA"{
+			SendTcpByRawConn(nil, localIP, extIP, localPort, port, "SA", seq, 0, 1, nil)
+			riph,  _ = RscanRecvByRawConn(nil, extIP, localIP, port, localPort, 0, "tcp", "RA,R", "", 0, nil, timeout) //should be "RA,R"
+		}
+		if flag == "S"{
+			SendTcpByRawConn(nil, localIP, extIP, localPort, port, "S", seq, 0, 1, nil)
+			riph,  _ = RscanRecvByRawConn(nil, extIP, localIP, port, localPort, 0, "tcp", "SA", "", 0, nil, timeout) //SA or A
+			//SendTcpByRawConn(nil, dstIP, srcIP, uint16(dstPort), uint16(srcPort), "RA", 0, ack, 1, nil)
+		}
+		// afterwards, the kernel will automaticall send a RST to stop the connection 
+	case "udp":
+		localPort := 10000 + (uint16(rand.Int()) & 0xffff) % 55535
+		txid := uint16(rand.Int()) & 0xffff
+		SendUdpByRawConn(nil, localIP, extIP, localPort, port, txid, 65535, domain, "A", 1)
+		riph, _ = RecvByRawConn(nil, extIP, localIP, port, localPort, txid, "udp", "", "", 0, nil) // Use Xiang's
 	}
-
-	rb := make([]byte, 1500) // the maximal capacity of ethenet link
-	timeout := 950 * time.Millisecond //2000
-	ddl := time.Now().Add(timeout)
-
-	for {
-		if time.Now().After(ddl) { break }
-		if err := rawConn.SetReadDeadline(ddl); err != nil {
-			log.Printf("error when setting RawConn ReadDeadline in RecvByRawConn(%v, %v:%v->%v:%v): %v\n", proto, srcIP, srcPort, dstIP, dstPort, err)
-			continue
-		}
-	//func (c *RawConn) ReadFrom(b []byte) (h *Header, p []byte, cm *ControlMessage, err error)
-		riph, _, _, err := rawConn.ReadFrom(rb)
-		
-                
-		
-		if err != nil {
-			log.Printf("error when reading RawConn ReadDeadline in RecvByRawConn(%v, %v:%v->%v:%v): %v\n", proto, srcIP, srcPort, dstIP, dstPort, err)
-			continue
-		}
-
-		if !riph.Src.Equal(srcIP) { continue }
-		
-		if proto == "tcp" && riph.Protocol != int(layers.IPProtocolTCP) { continue }
-		if proto == "udp" && riph.Protocol != int(layers.IPProtocolUDP) { continue }
-		if proto == "icmp" && riph.Protocol != int(layers.IPProtocolICMPv4) { continue }
-		
-		packet := gopacket.NewPacket(rb, layers.LayerTypeIPv4, gopacket.Default)
-		fmt.Print("received:", srcIP, packet)
-
-		if l := packet.Layer(layers.LayerTypeICMPv4); l != nil {
-			
-			ricmpl, ok := l.(*layers.ICMPv4)
-		
-			if !ok {
-				log.Printf("error when parsing ICMP in RecvByRawConn(%v, %v->%v): %v\n", proto, srcIP, dstIP, err)
-				continue
-			}
-			if uint16(ricmpl.TypeCode) == icmp[0] {
-				if ricmpl.Id == icmp[1] && ricmpl.Seq == icmp[2] {
-					return riph, packet
-				}
-			}
-			continue
-		}
-		// riph1, rpkt1 := RecvByRawConn(rc, extIP, localIP, port, uint16(localPort), 0, "tcp", "", needle, 0, nil)
-			
-		if l := packet.Layer(layers.LayerTypeTCP); l != nil {
-		       
-
-			rtcpl, ok := l.(*layers.TCP)
-			
-			if !ok {
-				log.Printf("error when parsing TCP in RecvByRawConn(%v, %v:%v->%v:%v): %v\n", proto, srcIP, srcPort, dstIP, dstPort, err)
-				continue
-			}
-			if uint16(rtcpl.DstPort) == dstPort {
-				match := true
-				if strings.Contains(flags, "S") && !rtcpl.SYN { match = false }
-				if strings.Contains(flags, "A") && !rtcpl.ACK { match = false }    				
-				if strings.Contains(flags, "F") && !rtcpl.FIN { match = false }
-				if strings.Contains(flags, "R") && !rtcpl.RST { match = false }				
-				if strings.Contains(flags, "P") && !rtcpl.PSH { match = false }
-				
-				if ack != 0 && rtcpl.Ack != ack { match = false }
-				if srcPort == 443 {
-					if strings.Contains(flags, "A") && (rtcpl.ACK) { match = true }
-					if len(rtcpl.Payload) < 68  { match = false }
-					
-				        if needle != "" && !(needle == strconv.FormatUint(uint64(rtcpl.Seq), 10)) { match = false }
-				} else {
-				
-					pl := strings.ToUpper(string(rtcpl.Payload))
-					//fmt.Println("Payload:", pl)
-					if needle != "" && !strings.Contains(pl, needle) { match = false }
-				}
-				
-				//fmt.Println("match: %v", match)
-				if match {
-					return riph, packet
-				}
-				
-			}
-		}
-
-		if l := packet.Layer(layers.LayerTypeUDP); l != nil {
-			rudpl, ok := l.(*layers.UDP)
-			if !ok {
-				log.Printf("error when parsing UDP in RecvByRawConn(%v, %v:%v->%v:%v): %v\n", proto, srcIP, srcPort, dstIP, dstPort, err)
-				continue
-			}
-			if uint16(rudpl.DstPort) == dstPort {
-				if l := packet.Layer(layers.LayerTypeDNS); l!=nil {
-					rdnsl, ok := l.(*layers.DNS)
-					if !ok {
-						log.Printf("error when parsing DNS in RecvByRawConn(%v, %v:%v->%v:%v): %v\n", proto, srcIP, srcPort, dstIP, dstPort, err)
-						continue
-					}
-					
-					if rdnsl.ID == txid && !rdnsl.QR { //receiving a query?
-						return riph, packet
-					}
-				}
-			}
-		}
+	
+	if riph != nil {
+		ipid =  riph.ID
 	}
-	return nil, nil
+	
+	return ipid
+
 }
-
 
 func RscanIpidVelocityTestIPV3(ip string, proto string, port uint16, domain string, fs, sl int) (int, []int, []int64) {
 	ids := []int{}
