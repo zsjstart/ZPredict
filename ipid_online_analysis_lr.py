@@ -328,15 +328,8 @@ def ipid_pred(cu, pfx, ip, protocol, flag, port, fs, sl):
 	return cu, pfx, ip, label
 
 def group_ips_measure(ips, protocol, flag, port, domains, fs, sl):
-	targets = {}
 	for ip, ns in zip(ips, domains):
-		code, pred = single_ip_forecast(ip, protocol, flag, port, ns, fs, sl)
-		if code == 0:
-			targets[ip] = pred
-		if len(targets) > 5: 
-			return targets
-	return targets
-
+		single_ip_forecast(ip, protocol, flag, port, ns, fs, sl)
 
 def predict_ipids(ipv4, protocol, flag, port, ns, fs, sl):
 	ipv4 = bytes(ipv4, 'utf-8')
@@ -479,109 +472,24 @@ def single_ip_forecast(ip, protocol, flag, port, ns, fs, sl):
 	mae = np.mean(abs(array(after_diff)))
 	smape = sMAPE02(chps_ind, actual, predictions)
 	pred = 1-smape
-	#logging.info('{a} | {b} | {c} | {d} | {e} | {f}'.format(a= ip, b = ipids, c = actual, d = predictions, e = mae, f = smape))
-	return code, pred
+	f.write(ip+','+str(smape)+','+str(pred)+'\n')
 	
 def fill_miss_values(data):
 	s = pd.Series(data)
 	s = s.interpolate(method='pad')
 	return (s.interpolate(method='linear', limit_direction ='both').values % 65536).tolist()
 
-def filter_data():
-	ips = list()
-	f = open('../ipid_prediction/Dataset/online_analysis/routers_global.data.new.res', 'w')
-	with open('../ipid_prediction/Dataset/online_analysis/routers_global.data.res', 'r') as filehandle:
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 3 : continue
-			ip = fields[0]
-			if ip in ips: continue
-			ips.append(ip)
-			f.write(line)
-	f.close()
-	
-
-
-def online_analysis_res():
-	ips = list()
-	with open('../ipid_prediction/evaluate/online_analysis/nameservers.non_global_ipids.res', 'r') as filehandle:
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 1 : continue
-			ip = fields[0]
-			ips.append(ip)
-			
-	
-	res = {}
-	for i in range(1,4):
-		with open('../ipid_prediction/evaluate/online_analysis/lr.nameservers.0'+str(i)+'.log') as filehandle:
-			filecontents = filehandle.readlines()
-			for line in filecontents:
-				fields = line.split("|")
-				if len(fields) < 5 : continue
-				ip = fields[0].split(':')[-1].strip(' ')
-				if ip in ips: continue
-				mae = float(fields[-2].strip(' '))
-				smape = float(fields[-1].strip(' '))
-			
-				if ip in res: 
-					res[ip]['maes'].append(mae)
-					res[ip]['smapes'].append(smape)
-				else:
-					res[ip] = dict({
-						'maes': [mae],
-						'smapes': [smape]
-						})
-				
-	f = open('../ipid_prediction/evaluate/online_analysis/lr.nameservers.predictability.res', 'w')
-	#f0 = open('../ipid_prediction/evaluate/online_analysis/lr.reflectors.(low).res', 'w')
-	for ip in res:
-		mae = np.mean(np.array(res[ip]['maes']))
-		smape = np.mean(np.array(res[ip]['smapes']))
-		#if smape < 0.001: 
-			#f0.write(ip+'\n')
-		f.write(ip+','+str(mae)+','+str(smape)+'\n')
-	f.close()
-	#f0.close()
-
 lib = cdll.LoadLibrary("./ipid_pred_lib.so")
-#logging.basicConfig(level=logging.INFO, filename='./lr.test.log')
-#f = open('./routers.non_global_ipids.res', 'w')
+f = open('./lr.routers.predictability.res', 'w')
 def main():
-	#lr()
-	#single_ip_forecast('218.223.90.225', 'tcp', 'SA', 80, '', 1, 20)
-	#test()
-	#f.close()
-	#online_analysis_res()
-	#filter_data()
-	split()
-
-def split():
-	f1 = open('../training_data/new_data/perConn.part1.data', 'w')
-	f2 = open('../training_data/new_data/perConn.part2.data', 'w')
-	with open('../training_data/new_data/perConn.data', 'r') as filehandle:	
-		filecontents = filehandle.readlines()
-		i = 0
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 1 : continue
-			if i >= 5000:
-				f2.write(line)
-			else:
-				f1.write(line)
-			i = i + 1
-	f1.close()
-	f2.close()
-			
+	test()
+	
 def test():
 	mutex=threading.Lock()
 	ips_list = list()
 	domains_list = list()
 	ips = list()
 	domains = list()
-	#with open('../ipid_prediction/Dataset/online_analysis/nameservers_global.data.res', 'r') as filehandle:
 	with open('./routers_global.data.res', 'r') as filehandle:	
 		filecontents = filehandle.readlines()
 		for line in filecontents:
