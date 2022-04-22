@@ -12,9 +12,13 @@ import "C"
 
 //export probe
 func probe(ip, proto, flag string, port int, domain string) int {
-	//id := utils.ProbeIP(ip)
 	id := utils.RscanIpidVelocityTestIPV2(ip, proto, flag, uint16(port), domain) 
 	return id
+}
+
+//export spoofing_probe
+func spoofing_probe(ip, dst_ip, proto string, port, dst_port int, domain string, n int, flag string) {
+	utils.SpoofingProbe(ip, dst_ip, proto, uint16(port), uint16(dst_port), domain, uint16(n), flag)
 }
  
 //export testIP
