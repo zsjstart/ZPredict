@@ -266,10 +266,7 @@ def online_training(raw_data, data, n_steps, n_test, maximum, minimum):
 	#print('Test MAPE: %.3f' % mape)
 	smape = sMAPE(actual, prediction)
 	print('Test sMAPE: %.3f' % smape)
-	'''pyplot.plot(actual, label='Expected')
-	pyplot.plot(prediction, label='Predicted')
-	pyplot.legend()
-	pyplot.show()'''
+	
 	
 
 def forecast(train, X_test, sigma):
@@ -506,161 +503,6 @@ def one_time_forecast_rem(sequence, predictions, n_steps, n_hold_out, MAX):
 	prediction = (y_pred[0] + sequence[-1])%65536
 	predictions.append(prediction[0])
 	
-def single_ip_forecast_old(ipStr):
-	#verify if this ip is reachable
-	ip = bytes(ipStr, 'utf-8') # Go source code is always utf-8.
-	count = 0
-	for i in range(3):
-		ipid = probe(ip)
-		if ipid == -1: count = count+1
-	if count == 3:
-		mutex.acquire()
-		dataset['ip'].append(ipStr)
-		dataset['mae'].append(None)
-		dataset['smape'].append(None)
-		mutex.release()
-		return
-	sliding_window = list()
-	wlth = 30
-	plth = 30
-	actual = list()
-	predictions = list() 
-	
-	start = time.monotonic()
-	while True:
-		end = time.monotonic()
-		if (end-start) >= 120: break
-		ipid = probe(ip)
-		#ipid = test_data.pop(0)
-		if ipid == -1: # packet loss
-			if len(sliding_window) == wlth and len(predictions) >0: predictions.pop(-1)
-			sliding_window = list()
-			continue
-		sliding_window.append(ipid)
-		if len(sliding_window) == wlth+1: 
-			actual.append(sliding_window[-1])
-			sliding_window.pop(0)
-		if len(predictions) == plth: break
-		if len(sliding_window) == wlth:
-			sequence =[x for x in sliding_window]
-			t=threading.Thread(target=one_time_forecast, args=(sequence, predictions))
-			t.start()
-		time.sleep(1)
-	if len(actual) == 0 or len(predictions) == 0 or len(actual) != len(predictions): 
-		mutex.acquire()
-		dataset['ip'].append(ipStr)
-		dataset['mae'].append(None)
-		dataset['smape'].append(None)
-		mutex.release()
-		return
-	diff = np.array(predictions) - np.array(actual)
-	mae = np.mean(abs(diff))
-	smape = sMAPE(actual, predictions)
-	mutex.acquire()
-	dataset['ip'].append(ipStr)
-	dataset['mae'].append(mae)
-	dataset['smape'].append(smape)
-	mutex.release()
-
-def single_ip_forecast(ipStr):
-	#verify if this ip is reachable
-	ip = bytes(ipStr, 'utf-8') # Go source code is always utf-8.
-	count = 0
-	for i in range(3):
-		ipid = probe(ip)
-		if ipid == -1: count = count+1
-	if count == 3:
-		dataset['ip'].append(ipStr)
-		dataset['rmse'].append(None)
-		dataset['smape'].append(None)
-		return
-	sliding_window = list()
-	wlth = 30
-	plth = 30
-	#n_steps, n_hold_out = 3, 9
-	n_steps = [3, 4, 5, 6]
-	n_hold_out = 9
-	actual = list()
-	predictions = list() 
-	chps_ind = list()
-	while True:
-		start = time.monotonic()
-		ipid = probe(ip)	
-		if ipid == -1: ipid = math.nan
-		sliding_window.append(ipid)
-		with open('./ipid_data.csv', 'a') as csv_file:
-			csv_writer = csv.DictWriter(csv_file, fieldnames=['actual', 'prediction'])
-			if len(predictions) == 0: prediction = math.nan
-			else: prediction = round(predictions[-1])
-			info = {
-			    'actual': sliding_window[-1],
-			    'prediction': prediction
-			}
-			csv_writer.writerow(info)
-		if len(sliding_window) == wlth+1: 
-			actual.append(sliding_window[-1])
-			sliding_window.pop(0)
-		if len(predictions) == plth: break
-		if len(sliding_window) == wlth:
-			count = 0
-			for x in sliding_window:
-				if math.isnan(x): count = count + 1
-			if count/wlth > 0.1: break
-			
-			MAX = 65536
-			#num = count_ipid_wraps(sliding_window)
-			#if num > 0 and max(sliding_window) < 32768 : MAX = 32768
-			
-			outlier = True
-			if containNAN(sliding_window):
-				vel = computeIpidVelocitySeg(sliding_window, list(range(len(sliding_window))), MAX)
-			else:
-				vel = computeIpidVelocity02(sliding_window, list(range(len(sliding_window))), MAX) # eliminate the outliers' impact
-			if vel > 10000: outlier = False # For high fluctuating
-			
-			sliding_window = filter_outliers02(outlier, sliding_window, MAX)
-			
-			if len(predictions) > 0 and math.isnan(sliding_window[-1]): actual[-1] = math.nan 
-			if len(predictions) > 0 and math.isnan(sliding_window[-2]): actual[i-2] = math.nan
-			if len(predictions) > 0 and alarm_change_point(vel, sliding_window[-2], sliding_window[-1], MAX):
-				chps_ind.append(len(predictions)-1)
-			new_window = fill_miss_values(sliding_window)
-			t=threading.Thread(target=one_time_forecast, args=(new_window, predictions, n_steps, n_hold_out, MAX))
-			t.start()
-		end = time.monotonic()
-		elapsed = end-start
-		time.sleep(1-elapsed)
-	if len(predictions) != plth:
-		dataset['ip'].append(ipStr)
-		dataset['rmse'].append(None)
-		dataset['smape'].append(None)
-		return
-	predictions = [round(i) for i in predictions]
-	print('predictions: ', ip, predictions)
-	print('actual: ', ip, actual)
-	#diff = np.array(predictions) - np.array(actual)
-	diff = eliminate_trans_error(chps_ind, actual, predictions)
-	after_diff = list()
-	for v in diff:
-		if math.isnan(v):
-			continue
-		after_diff.append(v)
-	if len(after_diff) < plth * 0.7:
-		dataset['ip'].append(ipStr)
-		dataset['rmse'].append(None)
-		dataset['smape'].append(None)
-		return
-	#mae = np.mean(abs(array(after_diff)))
-	rmse = np.mean(array(after_diff)**2)**.5
-	#smape = sMAPE(actual, predictions)
-	smape = sMAPE02(chps_ind, actual, predictions)
-	dataset['ip'].append(ipStr)
-	dataset['rmse'].append(rmse)
-	dataset['smape'].append(smape)
-
-def group_ips_measure(ips):
-	for ip in ips:
-		single_ip_forecast(ip)
 		
 def offline_forecast(data):
 	y_pred = list()
@@ -701,38 +543,7 @@ def offline_forecast(data):
 	#print('Test MAPE: %.3f' % mape)
 	smape = sMAPE(actual, prediction)
 	print('Test sMAPE: %.3f' % smape)
-	'''pyplot.plot(actual, label='Expected')
-	pyplot.plot(prediction, label='Predicted')
-	pyplot.legend()
-	pyplot.show()'''
-
-def filter_outliers_old(sequence, MAX): 
-	#scaler = preprocessing.MinMaxScaler()
-	#diff_data = scaler.fit_transform(np.array(diff_data).reshape(-1, 1))
-	#diff_data = diff_data.flatten()
-	diff_data = difference(sequence, 1, MAX)
-	sorted_data = sorted(diff_data)
-	med_index = len(sorted_data) // 2
-	med = np.median(sorted_data)
-	g1, g2 = list(), list()
-	if len(sorted_data)%2 == 0:
-		for i, d in enumerate(sorted_data):
-			if i < med_index: g1.append(d)
-			if i >= med_index: g2.append(d)
-	else:
-		for i, d in enumerate(sorted_data):
-			if i < med_index: g1.append(d)
-			if i > med_index: g2.append(d)
-	q1 = np.median(g1)
-	q3 = np.median(g2)
-	for i in range(len(diff_data)):
-		if diff_data[i] > q3 + 1.5 * (q3-q1) and diff_data[i] > 10000: #  i < q1 - 1.5 * (q3-q1), identify change points with too much noise or outliers 
-				diff_data[i] = math.nan
-	restore_data = list()
-	restore_data.append(sequence[0])
-	for i in range(len(diff_data)):
-		restore_data.append((sequence[i] +  diff_data[i])%65536)
-	return restore_data
+	
 
 def filter_outliers02(outlier, sequence, MAX):
 	new_window = [i for i in sequence]
@@ -871,77 +682,6 @@ def alarm_turning_point(thr, a1, a2, MAX):
 		alarm = True
 	return alarm
 	
-def cut_off_data():
-	f = open('../ipid_prediction/Dataset/validation_data/icmp_global.data', 'w')
-	#f = open('../training_data/test.noisy.res', 'w')
-	elps = list()
-	with open('../training_data/global.data', 'r') as filehandle:	 # global.50.data for measuring the time overhead
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 3 : continue
-			ip = fields[0]
-			dataStr=fields[1]
-			sequence = extract(dataStr)
-			#sequence = sequence[-60:]
-			sequence = sequence[0:60]
-			f.write(ip+','+'['+' '.join(map(str, sequence))+']'+'\n')
-	#print(statistics.mean(elps))
-	f.close()
-
-def generate_outliers02():
-	#for d in ['v(0-100)', 'v(100-500)', 'v(500-1200)', 'v(1200+)']:
-		filecontents = None
-		f = open('../ipid_prediction/Dataset/validation_data/icmp_global.outliers.data', 'w')
-		with open('../ipid_prediction/Dataset/validation_data/icmp_global.miss.data', 'r') as filehandle:
-			filecontents = filehandle.readlines()
-		#indices = random.sample(range(0, len(filecontents)), int(len(filecontents)*0.1))
-		#print(indices)
-		for i, line in enumerate(filecontents):
-			fields = line.split(",")
-			if len(fields) < 3 : continue
-			#ns = fields[1]
-			ip = fields[0]
-			dataStr=fields[1]
-			sequence = extract(dataStr)[0:60]
-			MAX = 65536
-			#if i in indices:
-			rands = random.sample(range(0, MAX), 3) # 5% outliers
-			locs = list()
-			for i, v in enumerate(sequence):
-				if v == -1:
-					locs.append(i)
-			for i, v in enumerate(locs):
-				sequence[v] = rands[i]
-			f.write(ip+','+'['+' '.join(map(str, sequence))+']'+'\n')
-		f.close()
-	
-def generate_outliers():
-	#for d in ['v(0-100)', 'v(100-500)', 'v(500-1200)', 'v(1200+)']:
-	for d in ['v(1200+)']:
-		filecontents = None
-		f = open('../ipid_prediction/Dataset/validation_data/icmp_global.'+d+'.outliers.data', 'w')
-		with open('../ipid_prediction/Dataset/validation_data/icmp_global.'+d+'.data', 'r') as filehandle:
-			filecontents = filehandle.readlines()
-		#indices = random.sample(range(0, len(filecontents)), int(len(filecontents)*0.1))
-		#print(indices)
-		for i, line in enumerate(filecontents):
-			fields = line.split(",")
-			if len(fields) < 3 : continue
-			#ns = fields[1]
-			ip = fields[0]
-			dataStr=fields[1]
-			sequence = extract(dataStr)[0:60]
-			MAX = 65536
-			#if i in indices:
-			rands = random.sample(range(0, MAX), 1) # 10% outliers
-			print(rands)
-			locs = random.sample(range(30, len(sequence)), 1)
-			for i, v in enumerate(locs):
-				sequence[v] = rands[i]
-			f.write(ip+','+'['+' '.join(map(str, sequence))+']'+'\n')
-		f.close()
-
 def hole_loss(ids, times, loss_rate):
 	new_ids = []
 	new_times = []
@@ -1059,21 +799,6 @@ def filter_outliers(outliers, thr, history, MAX):
 	data = filter_outliers01(outliers, history, thr, MAX)
 	return data
 
-networks = list()
-def count_BGP_Subnetworks():
-	with open('../ipid_prediction/Dataset/validation_data/icmp_global.data', 'r') as filehandle:
-		filecontents = filehandle.readlines()
-		print(len(filecontents))
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 3 : continue
-			ip = fields[0]
-			frags = ip.split('.')
-			network = frags[0] + '.' + frags[1] +'.'+ frags[2]
-			if network in networks: continue
-			networks.append(network)
-	print(len(networks))
-
 def plot_outliers_changes():
 	sns.set(rc={'figure.figsize':(6,3)})
 	a = list()
@@ -1099,20 +824,16 @@ def plot_outliers_changes():
 	plt.savefig('../images/outliers_changes.pdf')
 	#plt.show()					
 
-def grnn_remove_packet_loss():
-	#for l in [5, 10, 15, 20, 25]:
-	#for d in ['v(0-100)', 'v(100-500)', 'v(500-1200)', 'v(1200+)']:
-		#for l in [5, 10, 15, 20, 25, 30]:
-		c = 0
-		for l in [30]:
-			f = open('../ipid_prediction/evaluate/validation_data/icmp_global.grnn.changes.res', 'w') #w('+str(l)+')
-			with open('../ipid_prediction/Dataset/validation_data/icmp_global.changes.data', 'r') as filehandle:
-			#with open('../training_data/test.data', 'r') as filehandle:
+def grnn():
+	
+		for l in [5, 10, 15, 20, 25, 30]:
+		#for l in [30]:
+			f = open('../ipid_prediction/evaluate/online_analysis/*_global.res', 'w') #w('+str(l)+')
+			with open('../ipid_prediction/Dataset/online_analysis/*_global.data', 'r') as filehandle:
 				filecontents = filehandle.readlines()
 				for line in filecontents:
 					fields = line.split(",")
 					if len(fields) < 2 : continue
-					#ns = fields[1]
 					ip = fields[0]
 					dataStr=fields[1]
 					sequence = extract(dataStr)
@@ -1120,8 +841,7 @@ def grnn_remove_packet_loss():
 					for i, v in enumerate(sequence):
 						if v == -1:
 							sequence[i] = math.nan
-					#preprocessing dataset
-					#n_steps = 3
+					
 					vel = 0
 					n_steps = [2, 3, 4, 5, 6]
 					history, actual = sequence[30-l:30], sequence[30:]
@@ -1131,10 +851,6 @@ def grnn_remove_packet_loss():
 					predictions = list()
 					outlier_ind = list()
 					tem_actual = sequence[30-l:30]
-					#for plot: filtered data
-					#filter_data = filter_outliers02(True, history, 65536)
-					#filter_data = fill_miss_values(filter_data)
-					#for plot
 					new_window = list()
 					for i in range(len(actual)+1): # Attention: need to modify the actual data because of the outliers (Done!)			
 						start = time.monotonic()
@@ -1159,10 +875,6 @@ def grnn_remove_packet_loss():
 						outliers = False
 						change = False
 						history, change = filter_outliersv2(outliers, history, thr, MAX, tem_actual, outlier_ind)
-						##in this method, a slight change will be recognised as an outlier, therefore this method is suitable to quite stable IP ID increments.
-						#if i > 5:
-						#	history, change = filter_outliers_normal_distr(outliers, history, chps_ind, tem_actual, predictions, outlier_ind)
-							
 						if change:
 							tem_actual[-l:] = [i for i in history]
 							extra_preds = list()
@@ -1183,10 +895,7 @@ def grnn_remove_packet_loss():
 						tem_actual.append(actual[i])
 						history.append(actual[i])
 						history.pop(0)
-					# identify change points and then eliminate the error from the transformation at the restore. 
 					
-					#for i in chps_ind:
-					#	print('change points: ', actual[i])
 					after_predictions = list()
 					for v in predictions:
 						if math.isnan(v): 
@@ -1195,15 +904,6 @@ def grnn_remove_packet_loss():
 							after_predictions.append(round(v))
 					predictions = after_predictions
 					
-					'''err = list()
-					for i in range(len(predictions)):
-						if math.isnan(actual[i]): continue
-						err.append(abs(predictions[i]-actual[i]))
-					#err = np.array(err)
-					err = ' '.join(map(str, err))'''
-					#rmse = np.mean(array(err)**2)**.5
-					#print('Test RMSE: %.3f' % rmse)
-					
 					diff = eliminate_trans_error(chps_ind, actual, predictions)
 					after_diff = list()
 					for v in diff:
@@ -1211,38 +911,8 @@ def grnn_remove_packet_loss():
 						after_diff.append(v)
 					
 					err = ' '.join(map(str, after_diff))
-					
-					#print(np.abs(after_diff))
 					smape = sMAPE02(chps_ind, actual, predictions)
-					#print('Test sMAPE: %.3f' % smape)
-					
 					t = statistics.mean(elps)
-				
-					'''pyplot.plot(sequence[0:30]+actual, '-o', label='Expected')
-					pyplot.plot(sequence[0:30]+predictions, '-o', label='Predicted')
-					pyplot.legend()
-					pyplot.show()'''
-					
-					
-					'''sns.lineplot(np.array(range(0,60)), sequence[0:30]+predictions, marker="o", label='Predicted')
-					sns.lineplot(np.array(range(0,60)), sequence[0:30]+actual, marker="o", label='Expected')
-					pyplot.legend()
-					pyplot.xlabel('Received time (i-th second)')
-					pyplot.ylabel('IP ID value')
-					pyplot.savefig('../images/grnn.bad.example.pdf')
-					#pyplot.show()
-					'''
-					
-					'''pyplot.plot(list(range(0,60)), filter_data+history,'-o', label='Filtered', color = 'tab:green')
-					pyplot.plot(list(range(0,60)), sequence,'-', label='Expected', color = 'black')
-					#pyplot.plot(list(range(0,60)), sequence[0:30]+actual,'-o', label='Expected', color = 'black')
-					pyplot.plot(list(range(30,60)), predictions,'-', label='Predicted', color = 'tab:red')
-					pyplot.legend()
-					pyplot.xticks(fontweight = 'bold')
-					pyplot.yticks(fontweight = 'bold')
-					pyplot.xlabel('Received time (i-th second)', fontweight = 'bold')
-					pyplot.ylabel('IP ID value', fontweight = 'bold')
-					pyplot.show()'''
 					f.write(ip+',['+ err +'],'+str(smape)+','+str(t)+'\n')
 			f.close()
 
@@ -1268,141 +938,10 @@ def fill_predicted_values(data, predictions):
 		data[-1] = int(predictions[-1])
 	return data
 	
-def grnn_interpolate_packet_loss():
-	f = open('../training_data/global.grnn.linear.res', 'w')
-	with open('../training_data/global.random.loss.0.1.data', 'r') as filehandle:
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 3 : continue
-			ip = fields[0]
-			dataStr=fields[1]
-			sequence = extract(dataStr)
-			for i, v in enumerate(sequence):
-				if v == -1:
-					sequence[i] = math.nan
-			#preprocessing dataset
-			n_steps = 3
-			n_hold_out = 9
-			sliding_window, forecast_samples = sequence[0:30], sequence[30:]
-			predictions = list()
-			for i in range(len(forecast_samples)):
-				#print('sliding_window: ', sliding_window)
-				#new_window = interpolate_miss_values(sliding_window)
-				new_window = linear_interpolate_miss_values(sliding_window) # new_window
-				#print('new_window: ', new_window)
-				one_time_forecast(new_window, predictions, n_steps, n_hold_out) # new_window
-				new_value = forecast_samples[i]
-				sliding_window.append(new_value)
-				sliding_window.pop(0)
-			#print(predictions)
-			predictions = [round(i) for i in predictions]
-			#print('predictions: ', predictions)
-			#print('forecast_samples: ', forecast_samples)
-			diff = np.array(predictions) - np.array(forecast_samples)
-			after_diff = list()
-			for v in diff:
-				if math.isnan(v): continue
-				after_diff.append(v)
-			#print(-diff) # residual forecast error
-			#mae = np.mean(abs(array(after_diff)))
-			#print('Test MAE: %.3f' % mae)
-			rmse = np.mean(array(after_diff)**2)**.5
-			#print('Test RMSE: %.3f' % rmse)
-			#mape = np.mean(np.abs(diff)/np.array(actual))
-			#print('Test MAPE: %.3f' % mape)
-			smape = sMAPE(forecast_samples, predictions)
-			#print('Test sMAPE: %.3f' % smape)
-			f.write(ip+','+str(rmse) +','+str(smape)+'\n')
-	f.close()
+
 	
-dataset ={
-	'ip': [],
-	'rmse': [],
-	'smape': []
-}
-
-
 def main():
-	#grnn_without_packet_loss()
-	grnn_remove_packet_loss()
-	#grnn_interpolate_packet_loss()	
-	#generate_data_extra()
-	#generate_outliers()
-	#generate_changes()
-	#generate_random_loss_data()
-	#count_BGP_Subnetworks()
-	#cut_off_data()
-	#plot_outliers_changes()
-	#generate_outliers02()
-def main02():
-	ips_list = list()
-	ips = list()
-	#with open('../training_data/AlexaWebsites.top50.ns.ips', 'r') as filehandle:
-	with open('../evaluate/results/udp_53.alexa.ips.res', 'r') as filehandle:	
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 1 : continue
-			ip = fields[0] 
-			ips.append(ip)
-			if len(ips) == 10: #10
-				ips_list.append(ips)
-				ips = list()
-			if len(ips_list) == 6 and len(ips) == 2: 
-				ips_list.append(ips)
-	#print(ips_list)
-	with concurrent.futures.ThreadPoolExecutor() as executor:
-		futures = []
-		for ips in ips_list:
-			futures.append(executor.submit(group_ips_measure, ips))
-		for future in concurrent.futures.as_completed(futures):
-			future.result()
-	
-	df = pd.DataFrame(dataset)
-	df.to_csv('../training_data/global.grnn.linear.online.res', index=False)
-
-def animate(i):
-	data = pd.read_csv('./ipid_data.csv')
-	y1 = data['actual']
-	y2 = data['prediction']
-	x = list(range(len(y1)))
-	if x == 31:
-	  plt.axvline(x = x[-2])
-	  plt.axvline(x = x[-31])
-	plt.cla()
-	plt.plot(x, y1, label='Expected')
-	plt.plot(x, y2, label='Predicted')
-
-	plt.legend(loc='upper left')
-	plt.tight_layout()
-				
-			
-mutex=threading.Lock()
-def main03():
-	ips_list = list()
-	ips = list()
-	#with open('../training_data/AlexaWebsites.top50.ns.ips', 'r') as filehandle:
-	'''with open('../evaluate/results/udp_53.alexa.ips.res', 'r') as filehandle:	
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 1 : continue
-			ip = fields[0] 
-			ips.append(ip)
-			if len(ips) == 10: #10
-				ips_list.append(ips)
-				ips = list()
-			if len(ips_list) == 6 and len(ips) == 2: 
-				ips_list.append(ips)
-	print(ips_list)'''
-	ips.append('134.19.234.218')
-	
-	fieldnames = ["actual", "prediction"]
-	with open('./ipid_data.csv', 'w') as csv_file:
-		csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-		csv_writer.writeheader()
-	group_ips_measure(ips)
+	grnn()
 		
 if __name__ == "__main__":
     # execute only if run as a script
