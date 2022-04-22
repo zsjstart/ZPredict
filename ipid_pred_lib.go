@@ -1,7 +1,6 @@
 package main
 import "C"
 import "./utils"
-import "./ipid_predict_lib"
 import "unsafe"
 import "os/exec"
 import "sync"
@@ -20,7 +19,7 @@ func probe(ip, proto, flag string, port int, domain string) int {
  
 //export testIP
 func testIP(ip string, protocol string, port int, ns string, fs, sl int) (uintptr) { // return pointers: uintptr
-	code, ids, _:= ipid_predict_lib.RscanIpidVelocityTestIPV3(ip, protocol, uint16(port), ns, fs, sl)
+	code, ids, _:= utils.RscanIpidVelocityTestIPV3(ip, protocol, uint16(port), ns, fs, sl)
 	//id := utils.ProbeIPUdp(ip)
 	if code == -1 {
 		ids = nil
