@@ -423,10 +423,6 @@ def one_time_forecast(sequence, predictions, MAX):
 	diff_data, maximum, minimum = pre_processing(sequence, MAX)
 	X = np.array(range(len(sequence)-1)).reshape(-1, 1) # for time
 	y = np.array(diff_data)
-	#kernel = DotProduct() + WhiteKernel()
-	#kernel = C(constant_value=10, constant_value_bounds=(1e-2, 1e3))*RBF(length_scale=1e2, length_scale_bounds=(1, 1e3)) Not suitable!!!
-	#kernel = DotProduct() #this kernel cannot deal witht the abrupt changes or outliers (i.g., noise), but is well-suited for the linear changes
-	#kernel = DotProduct()
 	kernel =  WhiteKernel() 
 	#kernel = WhiteKernel() #noise_level=0.3**2, noise_level_bounds=(0.1**2, 0.5**2)
 	warnings.filterwarnings("ignore")
@@ -440,36 +436,27 @@ def one_time_forecast(sequence, predictions, MAX):
 	
 	
 def gp():
-	#for l in [5, 10, 15, 20, 25]:
-	#for d in ['v(0-100)', 'v(100-500)', 'v(500-1200)', 'v(1200+)']:
-		#for l in [5, 10, 15, 20, 25, 30]:
-		for l in [5]:
-			f = open('../ipid_prediction/evaluate/validation_data/icmp_global.gp.changes.res', 'w') #w('+str(l)+')
-			with open('../ipid_prediction/Dataset/validation_data/icmp_global.changes.data', 'r') as filehandle:
-			#f = open('../ipid_prediction/evaluate/online_analysis/'+t+'_global.lr.res', 'w')
-			#with open('../ipid_prediction/Dataset/online_analysis/'+t+'_global.data.res', 'r') as filehandle:
-			#with open('../ipid_prediction/Dataset/test_data/test_vel(0-100).data', 'r') as filehandle:
+		for l in [5, 10, 15, 20, 25, 30]:
+		#for l in [5]:
+			f = open('../ipid_prediction/evaluate/online_analysis/*_global.res', 'w')
+			with open('../ipid_prediction/Dataset/online_analysis/*_global.data.res', 'r') as filehandle:
 				filecontents = filehandle.readlines()
 				for line in filecontents:
 					fields = line.split(",")
 					if len(fields) < 2 : continue
-					#ns = fields[1]
 					ip = fields[0]
 					dataStr=fields[1]
 					sequence = extract(dataStr)
-					#timeStr= fields[2]
-					#times = extract(timeStr)
-					
+					timeStr= fields[2]
+					times = extract(timeStr)
+					'''
 					times = list()
 					for i in range(len(sequence)):
 						times.append(i)
-						
+					'''
 					for i, v in enumerate(sequence):
 						if v == -1:
 							sequence[i] = math.nan
-					
-					#preprocessing dataset
-					#n_steps = 3
 					vel = 0
 					history, actual = sequence[30-l:30], sequence[30:]
 					
@@ -489,7 +476,6 @@ def gp():
 						MAX = 65536
 						
 						if containNAN(history):
-							#vel = computeIpidVelocitySeg(history, list(range(len(history))), MAX)
 							vel = computeIpidVelocityNan(history, list(range(len(history))), MAX)
 						else:
 							vel = computeIpidVelocity02(history, list(range(len(history))), MAX) # eliminate the outliers' impact
@@ -503,18 +489,14 @@ def gp():
 						if i == len(actual): break
 						
 						
-						history = fill_miss_values(history) # base.res, try linear_interpolate_miss_values
+						history = fill_miss_values(history) # base
 						#history = linear_interpolate_miss_values(history)
 						#history = fill_predicted_values(history, predictions)
 						
 						outliers = False
 						#history = filter_outliers(outliers, thr, history, MAX, outlier_ind)
-						change = False
 						history, change = filter_outliersv2(outliers, history, thr, MAX, tem_actual, outlier_ind)
-						##in this method, a slight change will be recognised as an outlier, therefore this method is suitable to quite stable IP ID increments.
-						#if i > 5:
-						#	history, change = filter_outliers_normal_distr(outliers, history, chps_ind, tem_actual, predictions, outlier_ind)
-							
+						change = False
 						if change: # once identify an change rather than an outlier, then update the previouse incorrect predictions
 							tem_actual[-l:] = [i for i in history]
 							extra_preds = list()
@@ -534,10 +516,7 @@ def gp():
 						tem_actual.append(actual[i])
 						history.append(actual[i])
 						history.pop(0)
-					# identify change points and then eliminate the error from the transformation at the restore. 
-					
-					#for i in chps_ind:
-					#	print('change points: ', actual[i])
+					# identify change points and then eliminate the error from the transformation at the restore.
 					after_predictions = list()
 					for v in predictions:
 						if math.isnan(v): 
@@ -545,17 +524,6 @@ def gp():
 						else:
 							after_predictions.append(round(v))
 					predictions = after_predictions
-					
-					'''err = list()
-					for i in range(len(predictions)):
-						if math.isnan(actual[i]): continue
-						err.append(abs(predictions[i]-actual[i]))
-					
-					err = ' '.join(map(str, err))'''
-					
-					#rmse = np.mean(array(err)**2)**.5
-					#print('Test RMSE: %.3f' % rmse)
-					
 					diff = eliminate_trans_error(chps_ind, actual, predictions)
 					after_diff = list()
 					for v in diff:
@@ -565,24 +533,7 @@ def gp():
 					err = ' '.join(map(str, after_diff))
 					
 					smape = sMAPE02(chps_ind, actual, predictions)
-					#print('Test sMAPE: %.3f' % smape)
 					t = statistics.mean(elps)
-					
-					'''pyplot.plot(sequence[0:30]+actual, '-o', label='Expected')
-					pyplot.plot(sequence[0:30]+predictions, '-o', label='Predicted')
-					pyplot.legend()
-					pyplot.show()'''
-					
-					'''pyplot.plot(list(range(0,60)), filter_data+history,'-o', label='Filtered', color = 'tab:green')
-					pyplot.plot(list(range(0,60)), sequence,'-', label='Expected', color = 'black')
-					#pyplot.plot(list(range(0,60)), sequence[0:30]+actual,'-o', label='Expected', color = 'black')
-					pyplot.plot(list(range(30,60)), predictions,'-', label='Predicted', color = 'tab:red')
-					pyplot.legend()
-					pyplot.xticks(fontweight = 'bold')
-					pyplot.yticks(fontweight = 'bold')
-					pyplot.xlabel('Received time (i-th second)', fontweight = 'bold')
-					pyplot.ylabel('IP ID value', fontweight = 'bold')
-					pyplot.show()'''
 					f.write(ip+',['+ err +'],'+str(smape)+','+str(t)+'\n')
 			f.close()
 
@@ -607,87 +558,10 @@ def fill_predicted_values(data, predictions):
 	if math.isnan(data[-1]): 
 		data[-1] = int(predictions[-1])
 	return data
-	
-
-dataset ={
-	'ip': [],
-	'rmse': [],
-	'smape': []
-}
-
 
 def main():
 	gp()
-	
-def main02():
-	ips_list = list()
-	ips = list()
-	#with open('../training_data/AlexaWebsites.top50.ns.ips', 'r') as filehandle:
-	with open('../evaluate/results/udp_53.alexa.ips.res', 'r') as filehandle:	
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 1 : continue
-			ip = fields[0] 
-			ips.append(ip)
-			if len(ips) == 10: #10
-				ips_list.append(ips)
-				ips = list()
-			if len(ips_list) == 6 and len(ips) == 2: 
-				ips_list.append(ips)
-	#print(ips_list)
-	with concurrent.futures.ThreadPoolExecutor() as executor:
-		futures = []
-		for ips in ips_list:
-			futures.append(executor.submit(group_ips_measure, ips))
-		for future in concurrent.futures.as_completed(futures):
-			future.result()
-	
-	df = pd.DataFrame(dataset)
-	df.to_csv('../training_data/global.grnn.linear.online.res', index=False)
-
-def animate(i):
-	data = pd.read_csv('./ipid_data.csv')
-	y1 = data['actual']
-	y2 = data['prediction']
-	x = list(range(len(y1)))
-	if x == 31:
-	  plt.axvline(x = x[-2])
-	  plt.axvline(x = x[-31])
-	plt.cla()
-	plt.plot(x, y1, label='Expected')
-	plt.plot(x, y2, label='Predicted')
-
-	plt.legend(loc='upper left')
-	plt.tight_layout()
-				
 			
-mutex=threading.Lock()
-def main03():
-	ips_list = list()
-	ips = list()
-	#with open('../training_data/AlexaWebsites.top50.ns.ips', 'r') as filehandle:
-	'''with open('../evaluate/results/udp_53.alexa.ips.res', 'r') as filehandle:	
-		filecontents = filehandle.readlines()
-		for line in filecontents:
-			fields = line.split(",")
-			if len(fields) < 1 : continue
-			ip = fields[0] 
-			ips.append(ip)
-			if len(ips) == 10: #10
-				ips_list.append(ips)
-				ips = list()
-			if len(ips_list) == 6 and len(ips) == 2: 
-				ips_list.append(ips)
-	print(ips_list)'''
-	ips.append('134.19.234.218')
-	
-	fieldnames = ["actual", "prediction"]
-	with open('./ipid_data.csv', 'w') as csv_file:
-		csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-		csv_writer.writeheader()
-	group_ips_measure(ips)
-		
 if __name__ == "__main__":
     # execute only if run as a script
     main()
