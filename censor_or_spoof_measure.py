@@ -19,35 +19,6 @@ import logging.config
 import logging
 import argparse
 from datetime import date, datetime
-
-def count_unique_ip(ifile, list_type):
-	test_list = list()
-	with open(ifile, 'r') as filehandle:
-		filecontents = filehandle.readlines()
-		for i, line in enumerate(filecontents):
-			fields = line.split(",")
-			if len(fields) < 4: continue
-			cls = fields[0]
-			if cls != list_type: continue
-			ip = fields[2]
-			if ip in test_list: continue
-			test_list.append(ip)
-	return test_list
-
-def count_local_ip(cu, ifile, measure_type):
-	local_list = list()
-	cls = 'local'
-	with open(ifile, 'r') as filehandle:
-		filecontents = filehandle.readlines()
-		for i, line in enumerate(filecontents):
-			fields = line.split(",")
-			if len(fields) < 4: continue
-			if cu not in fields[0]: continue
-			if measure_type == "ipid":
-				ip = fields[2]
-				if ip in local_list: continue
-				local_list.append(ip)
-	return local_list
 	
 def load_list_for_ip(ifile, list_type):
 	test_list = list()
@@ -286,17 +257,14 @@ def censor_measure(t, measure_type, list_type):
 	global_list = list()
 	ifile = './test_list_global_All.final.dat'
 	if measure_type == "ipid":
-		print(len(count_unique_ip(ifile, list_type)))
 		global_list = load_list_for_ip(ifile, list_type)
 	#print('global_list: ', len(global_list))
 	for cu in ['RU','TR','IR','IN', 'CN']:
 		local_list = list()
 		ifile = './test_list_local_All.final.dat' #test_list_local_All.new.dat
 		local_list = load_local_list(cu, ifile, measure_type)
-		print(len(count_local_ip(cu, ifile, measure_type)))
 		#print(cu, len(local_list))
 		servers = global_list + local_list
-		'''
 		if measure_type == 'ipid':
 			ifile = './ipid_reflectors_All.asn.dat'
 			ofile1 = open('./'+measure_type+'_ip_spoof_'+cu+'.'+t+'.res', 'w')
@@ -305,7 +273,7 @@ def censor_measure(t, measure_type, list_type):
 			censor_measure_via_ipids(cu, ifile, servers, dataset2, ofile2)
 			ofile1.close()
 			ofile2.close()
-		'''
+		
 	
 	#df = pd.DataFrame(dataset1)
 	#df.to_csv('./ipid_censor_measure_'+cu+'.res', index=False)
