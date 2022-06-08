@@ -509,10 +509,12 @@ def test():
 	domains_list.append(domains)
 	print(len(ips_list))
 	protocol = 'icmp'
+	#protocol = 'tcp'
+	#protocol = 'udp'
 	port = 0
 	flag = ' '
-	fs = 2
-	sl = 60
+	fs = 1
+	sl = 100
 	with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
 		futures = []
 		for ips, domains in zip(ips_list, domains_list):
