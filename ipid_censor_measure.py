@@ -990,23 +990,8 @@ lib = cdll.LoadLibrary("./ipid_pred_lib.so")
 logging.basicConfig(level=logging.INFO, filename='./test_reflectors.log')
 #f = open('./ipid_port_scan.lr.test_pred_n.res', 'w')
 def main():
-	#analysis02()
-	#test_web_servers()
-	#start = time.monotonic()
-	#fast_scan()
-	#end = time.monotonic()
-	#logging.info('Total of time: {a}'.format(a = (end-start)/60))
-	#fast_scan_fp_res()
-	#extract_ssh_servers()
-	#extract_web_servers()
-	#collect_ground_truth_data_ICLab()
-	#censor_measure()
-	#test_reflectors()
-	test_reflectors_analysis()
-	#filter_unreachable_webservers()
-	#filter_urls()
-	#compute_RTO()
-
+	censor_measure()
+	
 def compute_RTO():
 	ips, ports = list(), list()
 	with open('./ooni_ip_blocking_2022_final.csv') as filehandle:
