@@ -198,20 +198,6 @@ switcher = {
 	9: 'test',
 }
 
-
-def test_case01():
-	accs = []
-	for r in [0.05, 0.10, 0.15, 0.20]:
-		data = pd.read_csv('./ipid_new_data_m('+str(r)+')_frag_9f.csv')
-	#for l in [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]:
-	#	data = pd.read_csv('./ipid_new_data_'+str(l)+'_5c_9f.csv')
-		X_test = data.iloc[:,1:10].values
-		y_test = data.iloc[:,10].values
-		scaler = joblib.load('./svm_scaler.gz')
-		acc = test(X_test, y_test, scaler, False)
-		accs.append(acc)
-	print(accs)
-
 def test_case():
 	data = pd.read_csv('../training_data/new_data/ipid_new_data_high_vel_6f.csv')
 	X_test = data.iloc[:,1:7].values
@@ -237,7 +223,7 @@ def main():
 	#feature_importance(X,y)
 	#cross_validation(X,y, c = 1000)
 	svm_classifier(X, y, c=1000)
-	test_case01()
+	
 	
 		
 
