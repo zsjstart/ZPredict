@@ -146,7 +146,7 @@ switcher = {
 	'perConn': 2,
 	'random': 3,
 	'constant':4,
-	'anomalous': 5,
+	'nonStandard': 5,
 	'test': 9,
 }
 
@@ -245,7 +245,7 @@ regex = r"[0-9]+|-1"
 def feature_extraction():		
 	T = 1
 	models = ['extreme']
-	classes = ['constant', 'global', 'perConn', 'random', 'anomalous']
+	classes = ['constant', 'global', 'perConn', 'random', 'nonStandard']
 	#classes = ['high_vel']
 	#length = [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]
 	length = [100]
@@ -303,7 +303,7 @@ def feature_extraction():
 def generate_loss_data():
 	loss_rates = [0.05, 0.10, 0.15, 0.20]
 	models = ['random']
-	classes = ['constant', 'global', 'perConn', 'random', 'anomalous']
+	classes = ['constant', 'global', 'perConn', 'random', 'nonStandard']
 	for loss_rate in loss_rates:
 		for model in models:
 			f = open('./'+model+'.loss.'+str(loss_rate)+'.data', 'w')
