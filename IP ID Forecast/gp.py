@@ -27,6 +27,7 @@ from matplotlib.animation import FuncAnimation
 from sklearn import linear_model
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, DotProduct, WhiteKernel, ConstantKernel as C
+from sklearn import linear_model
 import warnings
 
 lib = cdll.LoadLibrary("./ipid_pred_lib.so")
@@ -410,6 +411,8 @@ def data_preprocess(thr, data, MAX):
 			data[t] = data[t] + MAX
 	return wraps
 
+
+
 def pre_processing(sequence, MAX):
 	diff_data = difference(sequence, 1, MAX)
 	diff_data = array(diff_data).reshape(-1, 1)
@@ -419,7 +422,7 @@ def pre_processing(sequence, MAX):
 	maximum = scaler.data_max_
 	return diff_data, maximum, minimum
 		
-def one_time_forecast(sequence, predictions, MAX):
+def gp_one_time_forecast(sequence, predictions, MAX):
 	diff_data, maximum, minimum = pre_processing(sequence, MAX)
 	X = np.array(range(len(sequence)-1)).reshape(-1, 1) # for time
 	y = np.array(diff_data)
@@ -433,6 +436,95 @@ def one_time_forecast(sequence, predictions, MAX):
 	y_pred = denormalize(y_pred, maximum, minimum)
 	prediction = (y_pred[0] + sequence[-1])%MAX
 	predictions.append(prediction[0])
+
+def lr_one_time_forecast(data, times, ntime, k, predictions, MAX):
+    X = np.array(times).reshape(-1, 1)
+    y = np.array(data)
+    model = linear_model.LinearRegression().fit(X, y)
+    nt = np.array(ntime).reshape(-1, 1)
+    y_pred = model.predict(nt)[0] - MAX*k
+    predictions.append(y_pred)
+	
+def lr():
+		for l in [5, 10, 15, 20, 25, 30]:
+		#for l in [5]:
+			f = open('../ipid_prediction/evaluate/online_analysis/*_global.res', 'w')
+			with open('../ipid_prediction/Dataset/online_analysis/*_global.data.res', 'r') as filehandle:
+				filecontents = filehandle.readlines()
+				for line in filecontents:
+					fields = line.split(",")
+					if len(fields) < 2 : continue
+					ip = fields[0]
+					dataStr=fields[1]
+					sequence = extract(dataStr)
+					
+					for i, v in enumerate(sequence):
+						if v == -1:
+							sequence[i] = math.nan
+					vel = 0
+					history, actual = sequence[30-l:30], sequence[30:]
+					elps = list()
+					chps_ind = list()
+					predictions = list()
+					outlier_ind = list()
+					tem_actual = sequence[30-l:30]
+					
+					
+					
+					for i in range(len(actual)+1): # Attention: need to modify the actual data because of the outliers (Done!)			
+						start = time.monotonic()
+						MAX = 65536
+						times = list()
+						for i in range(len(history)):
+							times.append(i)
+						tHistory = times
+						
+						if containNAN(history):
+							vel = computeIpidVelocityNan(history, list(range(len(history))), MAX)
+						else:
+							vel = computeIpidVelocity02(history, list(range(len(history))), MAX) # eliminate the outliers' impact
+						
+						if vel < 1000: thr = 15000 # experimentially specify the threshold
+						else: thr = 30000
+						
+						if i > 1 and  alarm_turning_point(thr, tem_actual[-2], tem_actual[-1], MAX):
+								chps_ind.append(i-2)
+								chps_ind.append(i-1)
+						if i == len(actual): break
+						
+						
+						history = fill_miss_values(history) # base
+						wraps = data_preprocess(thr, history, MAX)
+						k = len(wraps)
+						ntime = tHistory[-1]+1
+						lr_one_time_forecast(history, tHistory, ntime, k, predictions, MAX)
+						if predictions[-1] < 0: predictions[-1] = 0
+						end = time.monotonic()
+						elps.append(end-start)
+						
+						history.append(actual[i])
+						history.pop(0)
+					# identify change points and then eliminate the error from the transformation at the restore.
+					after_predictions = list()
+					for v in predictions:
+						if math.isnan(v): 
+							after_predictions.append(v)
+						else:
+							after_predictions.append(round(v))
+					predictions = after_predictions
+					diff = eliminate_trans_error(chps_ind, actual, predictions)
+					after_diff = list()
+					for v in diff:
+						if math.isnan(v): continue
+						after_diff.append(v)
+					
+					err = ' '.join(map(str, after_diff))
+					
+					smape = sMAPE02(chps_ind, actual, predictions)
+					t = statistics.mean(elps)
+					f.write(ip+',['+ err +'],'+str(smape)+','+str(t)+'\n')
+			f.close()
+					
 	
 	
 def gp():
@@ -509,7 +601,7 @@ def gp():
 								if extra_preds[-1] < 0: extra_preds[-1] = 0
 							predictions[-n:] = extra_preds
 						
-						one_time_forecast(history, predictions, MAX)
+						gp_one_time_forecast(history, predictions, MAX)
 						if predictions[-1] < 0: predictions[-1] = 0
 						end = time.monotonic()
 						elps.append(end-start)
