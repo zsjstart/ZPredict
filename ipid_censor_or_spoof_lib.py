@@ -26,7 +26,7 @@ import re
 import glob
 import os
 from ipwhois import IPWhois
-from ipid_online_analysis_lr import predict_ipids
+from ipid_predictability import predict_ipids
 import multiprocessing
 from caproto.sync.shark import shark
 import dpkt
