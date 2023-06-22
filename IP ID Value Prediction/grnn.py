@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from numpy import array, asarray
-from features_extraction_lib import extract
+from features_extraction import extract
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import pyplot
