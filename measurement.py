@@ -12,13 +12,12 @@ import math
 import statistics
 from scipy.stats import norm, linregress
 from ipid_censor_or_spoof_lib import single_ipid_test_for_censor, single_ipid_test_for_spoof, probe, compute_td
-from ipid_online_analysis_lr import predict_ipids, single_ip_forecast
+from ipid_predictability import predict_ipids, single_ip_forecast
 import logging.config
 import logging
 import argparse
 from datetime import date, datetime
 
-from ipid_censor_or_spoof_lib import probe, compute_td
 import random
 import subprocess
 import multiprocessing
