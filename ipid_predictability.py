@@ -18,7 +18,7 @@ import random
 import csv
 import logging
 from sklearn import linear_model
-import features_extraction_lib
+import features_extraction
 import warnings
 from ipid_censor_or_spoof_lib import gp_one_time_forecast, spoofing_samples
 warnings.filterwarnings("ignore")
