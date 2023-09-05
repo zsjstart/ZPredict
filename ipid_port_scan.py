@@ -648,8 +648,8 @@ def test():
         'status': [],
         'astatus': [],
     }
-    # with open('../ipid_prediction/evaluate/online_analysis/lr.reflectors.(low).res', 'r') as filehandle:
-    with open('../ipid_prediction/Dataset/online_analysis/reflectors_global.data.res', 'r') as filehandle:
+    # with open('../ipid_prediction/evaluate/online_analysis/gp.zombies.(low).res', 'r') as filehandle:
+    with open('../ipid_prediction/Dataset/online_analysis/zombies_global.data.res', 'r') as filehandle:
         filecontents = filehandle.readlines()
         for line in filecontents:
             fields = line.split(",")
@@ -684,41 +684,13 @@ def extract_nmap_out(ifile):
             if n >= 250: break
     f.close()
 
-
-def test_via_nmap(src_ip, ip, protocol, dst_port, dst_ip, ns, dataset):
-    astatus = test_dst_port(src_ip, dst_ip, protocol, 'S', dst_port, ns)
-    try:
-        output = check_output(["sudo", "nmap", "-Pn", "-sI", ip,
-                               "-p"+str(dst_port), dst_ip], stderr=STDOUT, timeout=30)
-        
-        m = re.search(str(dst_port)+"/tcp (.+?) ", str(output))
-
-        if m == None:
-            logging.info('OUTPUT: {output}'.format(output=output))
-            return
-        status = m.group(1)
-
-        dataset['ip'].append(ip)
-        dataset['mae'].append('')
-        dataset['smape'].append('')
-        dataset['n'].append('')
-        dataset['status'].append(status)
-        dataset['dst_ip'].append(dst_ip)
-        dataset['astatus'].append(astatus)
-    except Exception as e:
-        logging.info('ERROR: {error}'.format(error = str(e)))
-        return
-
-
-
-
 def test_pred_n():
     ips_list = list()
     domains_list = list()
     ips = list()
     domains = list()
-    # ./lr.reflectors.(low).res, scan_target_reflectors.res
-    with open('scan_target_reflectors.final.res', 'r') as filehandle:
+    # ./gp.zombies.(low).res, scan_target_zombies.res
+    with open('scan_target_zombies.final.res', 'r') as filehandle:
         filecontents = filehandle.readlines()
         for line in filecontents:
             fields = line.split(",")
@@ -758,7 +730,7 @@ def test_pred_n():
         for future in concurrent.futures.as_completed(futures):
             print('Done!')
     df = pd.DataFrame(dataset)
-    df.to_csv('./ipid_port_scan.lr.spoofing.01.res', index=False)
+    df.to_csv('./ipid_port_scan.gp.spoofing.01.res', index=False)
 
 
 def test_web_servers():
@@ -781,7 +753,7 @@ def test_web_servers():
                                dst_ip, dst_port, True, dataset)
 
     df = pd.DataFrame(dataset)
-    df.to_csv('./ipid_port_scan.lr.web_servers.res', index=False)
+    df.to_csv('./ipid_port_scan.gp.web_servers.res', index=False)
 
 
 def extract_web_servers():
@@ -805,76 +777,9 @@ def extract_web_servers():
             f.write(ip+'\n')
     f.close()
 
-
-def start_measure(reflectors, webservers, dataset):
-    protocol = 'tcp'
-    port = random.randrange(10000, 65535, 1)
-    ns = ''
-    dst_port = 44345
-    #dst_port = 80
-    #dst_port = 443
-    src_ip = '45.125.236.166'
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
-        futures = []
-        for ip, dst_ip in zip(reflectors, webservers):
-            #futures.append(executor.submit(single_port_scan, src_ip, ip, protocol, port, ns, dst_ip, dst_port, 30, False, dataset))
-            futures.append(executor.submit(test_via_nmap, src_ip, ip, protocol, dst_port, dst_ip, ns, dataset))
-        for future in concurrent.futures.as_completed(futures):
-            future.result()
-
-
-def idle_scan():
-
-    n = 100
-    reflectors = list()
-    # less than 10 sampled packets nmap_idle_hosts.dat
-    with open('./our_zombies.dat') as f1:  # nmap_idle_hosts, our_zombies.dat
-        filecontents = f1.readlines()
-        for line in filecontents:
-            fields = line.split(",")
-            if len(fields) < 1:
-                continue
-            ip = fields[0].strip('\n')
-            reflectors.append(ip)
-    webservers = list()
-    print(len(reflectors))
-    dataset = {
-        'ip': [],
-        'mae': [],
-        'smape': [],
-        'n': [],
-        'dst_ip': [],
-        'status': [],
-        'astatus': [],
-    }
-    random.shuffle(reflectors)  # randomly resorted
-    # ./lr.idle_scan.p80.fn.res.res webserver_ips.target.data
-    with open('./webserver_ips.mini.data') as f2:
-        filecontents = f2.readlines()
-        for line in filecontents:
-            fields = line.split(",")
-            if len(fields) < 1:
-                continue
-            ip = fields[0].strip('\n')
-            webservers.append(ip)
-            if len(webservers) == n:
-                subwindow = reflectors[0:n]
-                # pop the prior 100 servers and push them at the end of the previous reflectors window
-                reflectors = reflectors[n:] + subwindow
-                start_measure(subwindow, webservers, dataset)
-                webservers.clear()
-                continue
-        if len(webservers) > 0:
-            subwindow = reflectors[0:len(webservers)]
-            start_measure(subwindow, webservers, dataset)
-    df = pd.DataFrame(dataset)
-    df.to_csv('./idle_scan.webservers.p44345.res',
-              index=False)  # ratelimit
-
-
 def compute_acc():
     s = 0
-    with open('./ipid_port_scan.lr.web_servers.p80.res') as filehandle:
+    with open('./ipid_port_scan.gp.web_servers.p80.res') as filehandle:
         filecontents = filehandle.readlines()
         for line in filecontents:
             if line == filecontents[0]:
@@ -893,7 +798,7 @@ def compute_acc():
 def idle_scan_fn_res():
     res = {}
 
-    with open('./ipid_port_scan.lr.web_servers.p80.res') as filehandle:
+    with open('./ipid_port_scan.gp.web_servers.p80.res') as filehandle:
         filecontents = filehandle.readlines()
         for line in filecontents:
             if line == filecontents[0]:
@@ -917,8 +822,8 @@ def idle_scan_fn_res():
                 })
 
     '''
-	f = open('../ipid_prediction/evaluate/online_analysis/lr.idle_scan.p80.res', 'w')
-	f1 = open('../ipid_prediction/evaluate/online_analysis/lr.idle_scan.p80.fn.res', 'w')
+	f = open('../ipid_prediction/evaluate/online_analysis/gp.idle_scan.p80.res', 'w')
+	f1 = open('../ipid_prediction/evaluate/online_analysis/gp.idle_scan.p80.fn.res', 'w')
 	c = 0
 	for ip in res:
 		r = res[ip]['status']
@@ -941,7 +846,7 @@ def idle_scan_fn_res():
 def idle_scan_fp_res():
     res = {}
     for i in range(1):
-        with open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.lr.web_servers.p44345.res') as filehandle:
+        with open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.gp.web_servers.p44345.res') as filehandle:
             filecontents = filehandle.readlines()
             for line in filecontents:
                 if line == filecontents[0]:
@@ -965,9 +870,9 @@ def idle_scan_fp_res():
                     })
 
     f = open(
-        '../ipid_prediction/evaluate/online_analysis/lr.idle_scan.p44345.res', 'w')
+        '../ipid_prediction/evaluate/online_analysis/gp.idle_scan.p44345.res', 'w')
     f1 = open(
-        '../ipid_prediction/evaluate/online_analysis/lr.idle_scan.p44345.fp.res', 'w')
+        '../ipid_prediction/evaluate/online_analysis/gp.idle_scan.p44345.fp.res', 'w')
     c = 0
     for ip in res:
         g = np.sum(res[ip]['status'])
@@ -991,13 +896,13 @@ def analysis01():
     smapes = list()
     nums = list()
     f = open(
-        './scan_target_reflectors.01.res', 'w')
+        './scan_target_zombies.01.res', 'w')
     f1 = open(
-        './scan_target_reflectors.g1.res', 'w')
+        './scan_target_zombies.g1.res', 'w')
     f2 = open(
-        './scan_target_reflectors.g2.res', 'w')
+        './scan_target_zombies.g2.res', 'w')
     for l in range(30, 31):
-        with open('./ipid_port_scan.lr.spoofing.01.res') as filehandle:  # 'str(l)'
+        with open('./ipid_port_scan.gp.spoofing.01.res') as filehandle:  # 'str(l)'
             filecontents = filehandle.readlines()
             c = 0.0
             nega = 0.0
@@ -1034,8 +939,8 @@ def analysis01():
     print(np.median(nums))
     #sns.boxplot(data = nums, showfliers=False)
     # plt.show()
-    '''f = open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.lr.nega.log', 'w')
-	with open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.lr.test.log') as filehandle:
+    '''f = open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.gp.nega.log', 'w')
+	with open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.gp.test.log') as filehandle:
 			filecontents = filehandle.readlines()
 			for line in filecontents:
 				fields = line.split("|")
@@ -1053,7 +958,7 @@ def analysis02():
     smapes = list()
     nums = list()
 
-    with open('./scan_target_reflectors.new.02.res') as filehandle:
+    with open('./scan_target_zombies.new.02.res') as filehandle:
         filecontents = filehandle.readlines()
         for line in filecontents:
             fields = line.split(",")
@@ -1063,9 +968,9 @@ def analysis02():
             ips.append(ip)
     print(len(ips))
 
-    f = open('./scan_target_reflectors.final.res', 'w')
+    f = open('./scan_target_zombies.final.res', 'w')
     for l in range(30, 31):
-        with open('./ipid_port_scan.lr.no.spoofing.02.res') as filehandle:
+        with open('./ipid_port_scan.gp.no.spoofing.02.res') as filehandle:
             filecontents = filehandle.readlines()
             posi = 0.0
             count = 0.0
@@ -1108,14 +1013,14 @@ def analysis():
 
     '''ips1 = list()
 	ips2 = list()
-	f0 = open('../ipid_prediction/Dataset/online_analysis/scan_target_reflectors.merged.res', 'w')
-	with open('../ipid_prediction/Dataset/online_analysis/scan_target_reflectors.new.01.res') as filehandle:
+	f0 = open('../ipid_prediction/Dataset/online_analysis/scan_target_zombies.merged.res', 'w')
+	with open('../ipid_prediction/Dataset/online_analysis/scan_target_zombies.new.01.res') as filehandle:
 			filecontents = filehandle.readlines()
 			for line in filecontents:
 				fields = line.split(",")
 				if len(fields) < 6 : continue
 				ips1.append(fields[0])
-	with open('../ipid_prediction/Dataset/online_analysis/scan_target_reflectors.new.02.res') as filehandle:
+	with open('../ipid_prediction/Dataset/online_analysis/scan_target_zombies.new.02.res') as filehandle:
 			filecontents = filehandle.readlines()
 			for line in filecontents:
 				fields = line.split(",")
@@ -1123,7 +1028,7 @@ def analysis():
 				ip = fields[0]
 				if ip not in ips1: continue
 				ips2.append(ip)
-	with open('../ipid_prediction/Dataset/online_analysis/scan_target_reflectors.new.03.res') as filehandle:
+	with open('../ipid_prediction/Dataset/online_analysis/scan_target_zombies.new.03.res') as filehandle:
 			filecontents = filehandle.readlines()
 			for line in filecontents:
 				fields = line.split(",")
@@ -1133,8 +1038,8 @@ def analysis():
 				f0.write(line)
 	f0.close()'''
 
-    '''f0 = open('../ipid_prediction/Dataset/online_analysis/scan_target_reflectors.idle.res', 'w')
-	with open('../ipid_prediction/Dataset/online_analysis/scan_target_reflectors.merged.res') as filehandle:
+    '''f0 = open('../ipid_prediction/Dataset/online_analysis/scan_target_zombies.idle.res', 'w')
+	with open('../ipid_prediction/Dataset/online_analysis/scan_target_zombies.merged.res') as filehandle:
 			filecontents = filehandle.readlines()
 			for line in filecontents:
 				fields = line.split(",")
@@ -1145,8 +1050,8 @@ def analysis():
 	f0.close()
 	ips = list()
 	res1 = {}
-	f = open('../ipid_prediction/evaluate/online_analysis/lr.idle_scan.p80.fn.ratelimit.log', 'w')
-	with open('../ipid_prediction/evaluate/online_analysis/lr.idle_scan.p80.fn.ratelimit.res') as filehandle:
+	f = open('../ipid_prediction/evaluate/online_analysis/gp.idle_scan.p80.fn.ratelimit.log', 'w')
+	with open('../ipid_prediction/evaluate/online_analysis/gp.idle_scan.p80.fn.ratelimit.res') as filehandle:
 			filecontents = filehandle.readlines()
 			for i, line in enumerate(filecontents):
 				fields = line.split(",")
@@ -1156,7 +1061,7 @@ def analysis():
 				ips.append(ip)
 				res1[ip] = n
 	print(len(ips))
-	with open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.lr.web_servers.p80.res') as filehandle:
+	with open('../ipid_prediction/evaluate/online_analysis/ipid_port_scan.gp.web_servers.p80.res') as filehandle:
 		filecontents = filehandle.readlines()
 		for line in filecontents:
 			if line == filecontents[0]: continue
@@ -1168,7 +1073,7 @@ def analysis():
 			f.write(ip+','+str(n)+'\n')
 	f.close()
 	res0 = {}
-	with open('../ipid_prediction/evaluate/online_analysis/lr.idle_scan.p80.fn.ratelimit.log') as filehandle:
+	with open('../ipid_prediction/evaluate/online_analysis/gp.idle_scan.p80.fn.ratelimit.log') as filehandle:
 			filecontents = filehandle.readlines()
 			for i, line in enumerate(filecontents):
 				fields = line.split(",")
@@ -1184,6 +1089,101 @@ def analysis():
 			print(n0, n)
 			c = c +1
 	print(c)'''
+
+# First, use ipidseq to collect idle hosts
+# src_ip: measurement machine address
+# ip: spoofed address
+# dst_ip: webserver address
+def test_via_nmap(src_ip, ip, protocol, dst_port, dst_ip, ns, dataset):
+    # direct scan
+    astatus = test_dst_port(src_ip, dst_ip, protocol, 'S', dst_port, ns)
+    try:
+        output = check_output(["sudo", "nmap", "-Pn", "-sI", ip,
+                               "-p"+str(dst_port), dst_ip], stderr=STDOUT, timeout=30)
+        
+        m = re.search(str(dst_port)+"/tcp (.+?) ", str(output))
+
+        if m == None:
+            logging.info('OUTPUT: {output}'.format(output=output))
+            return
+        status = m.group(1)
+
+        dataset['ip'].append(ip)
+        dataset['mae'].append('')
+        dataset['smape'].append('')
+        dataset['n'].append('')
+        dataset['status'].append(status)
+        dataset['dst_ip'].append(dst_ip)
+        dataset['astatus'].append(astatus)
+    except Exception as e:
+        logging.info('ERROR: {error}'.format(error = str(e)))
+        return
+
+def start_measure(zombies, webservers, dataset):
+    protocol = 'tcp'
+    port = random.randrange(10000, 65535, 1)
+    ns = ''
+    dst_port = 44345
+    #dst_port = 80
+   
+    src_ip = '45.125.236.166'
+    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        futures = []
+        for ip, dst_ip in zip(zombies, webservers):
+            #futures.append(executor.submit(single_port_scan, src_ip, ip, protocol, port, ns, dst_ip, dst_port, 30, False, dataset))
+            futures.append(executor.submit(test_via_nmap, src_ip, ip, protocol, dst_port, dst_ip, ns, dataset))
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
+
+		
+def idle_scan():
+
+    n = 100
+    zombies = list()
+    
+    with open('./our_zombies.dat') as f1:  # nmap_idle_hosts, our_zombies.dat
+        filecontents = f1.readlines()
+        for line in filecontents:
+            fields = line.split(",")
+            if len(fields) < 1:
+                continue
+            ip = fields[0].strip('\n')
+            zombies.append(ip)
+    webservers = list()
+    print(len(zombies))
+    dataset = {
+        'ip': [],
+        'mae': [],
+        'smape': [],
+        'n': [],
+        'dst_ip': [],
+        'status': [],
+        'astatus': [],
+    }
+    random.shuffle(zombies)  # randomly resorted
+   
+    with open('./webserver_ips.data') as f2:
+        filecontents = f2.readlines()
+        for line in filecontents:
+            fields = line.split(",")
+            if len(fields) < 1:
+                continue
+            ip = fields[0].strip('\n')
+            webservers.append(ip)
+            if len(webservers) == n:
+                subwindow = zombies[0:n]
+                # pop the prior 100 servers and push them at the end of the previous zombies window
+                zombies = zombies[n:] + subwindow
+                start_measure(subwindow, webservers, dataset)
+                webservers.clear()
+		# time.sleep(60)
+                continue
+        if len(webservers) > 0:
+            subwindow = zombies[0:len(webservers)]
+            start_measure(subwindow, webservers, dataset)
+    df = pd.DataFrame(dataset)
+    df.to_csv('./idle_scan.webservers.p44345.res',
+              index=False)  # ratelimit
 
 
 lib = cdll.LoadLibrary("./ipid_pred_lib.so")
