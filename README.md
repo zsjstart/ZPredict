@@ -104,8 +104,13 @@ In this context, the FPR is defined as the rate at which networks without deploy
 
 ## References
 [1] Salutari, Flavia, Danilo Cicalese, and Dario J. Rossi. "A closer look at ip-id behavior in the wild." Passive and Active Measurement: 19th International Conference, PAM 2018, Berlin, Germany, March 26–27, 2018, Proceedings 19. Springer International Publishing, 2018.
+
 [2] Chandola, Varun, and Ranga Raju Vatsavai. "A gaussian process based online change detection algorithm for monitoring periodic time series." Proceedings of the 2011 SIAM international conference on data mining. Society for Industrial and Applied Mathematics, 2011.
+
 [3] Antirez. http://seclists.org/bugtraq/1998/Dec/0079.html. [accessed 16-May-2024]
+
 [4] Dai, Tianxiang, and Haya Shulman. "Smap: Internet-wide scanning for spoofing." Proceedings of the 37th Annual Computer Security Applications Conference. 2021.
+
 [5] Ensafi, Roya, et al. "Detecting intentional packet drops on the Internet via TCP/IP side channels." Passive and Active Measurement: 15th International Conference, PAM 2014, Los Angeles, CA, USA, March 10-11, 2014, Proceedings 15. Springer International Publishing, 2014.
+
 [6] Pearce, Paul, et al. "Augur: Internet-wide detection of connectivity disruptions." 2017 IEEE Symposium on Security and Privacy (SP). IEEE, 2017.
