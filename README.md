@@ -54,7 +54,7 @@ Then we derive the value of $n_{s}$ as follows:
 2. $n_{s} >  -\Phi ^{-1}(\alpha)*\sigma - \mu + \hat{x_{N}}-x_{N}$
 
 We use $e_{max}$, the maximum prediction error in $E$, as the estimated
-value of $\tilde{e_{N}}$ (which equals $\hat{x_{N}}-x_{N}$, with the
+value of $\hat{x_{N}}-x_{N}$, with the
 ideal value being 0) to yield a relatively large $n_{s}$ value, ensuring
 the triggering of the anomaly detection. We also ensure that we send at
 least one spoofed packet. Then, we define
