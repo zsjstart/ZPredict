@@ -40,7 +40,7 @@ We then compute the mean and the standard deviation of $E$, denoted as $\mu$ and
 Since $E$ follows a Gaussian distribution, the variable Z = $\frac{E-\mu}{\sigma}$ conforms to the standard normal distribution of $N(0,1)$.
 
 
-Suppose we send a certain number of spoofed packets, denoted as $n_{s}$, between the ${(N-1)}_{th}$ and ${N}_{th}$ seconds.
+Suppose we send a certain number of spoofed packets, denoted as $n_{s}$, between the ${N-1}_{th}$ and ${N}_{th}$ seconds.
 When successful perturbations on the counter occur, it causes the value of $e_{N}$ to decrease.
 As a result, the $e_{N}$ value would fall in the left tail of the distribution.
 We conduct a left-tailed Z-test with a significance level of $\alpha$ = 0.05 to identify anomalous IPID value increases resulting from spoofed packets.
