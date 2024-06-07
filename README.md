@@ -74,7 +74,7 @@ We collect IPID time series from 5,000 randomly selected hosts with global IPID 
 
 Assuming that the first retransmission timeout (RTO) is 3s.
 We make 30 predictions for IPID time series from a specific host before spoofed packet injection.
-To ensure the collected time series is long enough to cover two IPID increments driven by spoofed packets, we send 39 probes (four more than in previous experiments) to the 5,000 servers at a rate of one packet per second. 
+To ensure the collected time series is long enough to cover two IPID increments driven by spoofed packets, we send 39 probes to the 5,000 servers at a rate of one packet per second. 
 
 Afterward, we generate new datasets based on the initial data for experiments.
 Assuming that we send spoofed packets within the $35^{th}$ second, the induced IPID increment (e.g., in cases of open ports) would occur at the $35^{th}$ second.
@@ -91,8 +91,10 @@ We then proceed to verify the effectiveness of our approach in identifying IPID 
 ![Fig. \ref{fig:port_scan_fpr_fnr}](images/port_scan_fpr_fnr_plot.pdf) illustrates false positive rates (FPR) and false negative rates (FNR) varying across different MAE, RMSE, and SMAPE values
 in the context of port scanning or SAV inference. In port scanning, the FPR denotes the rate of mistakenly identifying closed ports as open, while in SAV inference, it indicates the rate at which non-IP-spoofable networks are falsely classified as IP-spoofable.
 
-Each data point, represented by (MAE/RMSE/SMAPE, FPR/FNR), showcases the corresponding FPR/FNR value under the condition that the prediction error of IPID time series is lower than the corresponding MAE/RMSE/SMAPE value. Notably, we observe a convergence of FPR and FNR values to around 8\% and 5\%, respectively, as the MAE, RMSE, and SMAPE values increase.
+Each data point, represented by (MAE/RMSE/SMAPE, FPR/FNR), showcases the corresponding FPR/FNR value under the condition that the prediction error of IPID time series is lower than the corresponding MAE/RMSE/SMAPE value. Notably, we observe a convergence of FPR and FNR values to around 8% and 5%, respectively, as the MAE, RMSE, and SMAPE values increase.
 
 ![Fig. \ref{fig:censor_measure_accs}](images/censor_measure_accs_plot.pdf) and ![Fig. \ref{fig:censor_measure_fpr_fnr}](images/censor_measure_fpr_fnr_plot.pdf) illustrate the validation results using datasets associated with censor measurement, including accuracy values across three states: "No blocking", "Ingress blocking", and "Egress blocking", as well as the false positive rate (FPR) and false negative rate (FNR) values.
 In this context, the FPR is defined as the rate at which networks without deploying censor devices are incorrectly identified as having censorship deployment.
-Similarly, higher accuracy and lower FPR/FNR are achieved when the IPID time series exhibits a smaller MAE/RMSE/SMAPE value.
+
+### Noting that, during real-world measurements, multiple measurements (e.g., 5 times) are performed to reduce false postive and false negative rates.
+
