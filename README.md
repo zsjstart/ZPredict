@@ -59,3 +59,41 @@ ideal value being 0) to yield a relatively large $n_{s}$ value, ensuring
 the triggering of the anomaly detection. We also ensure that we send at
 least one spoofed packet. Then, we define
 $n_{s} = 1 + (-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max})$.
+
+#### Noting that, during real-world measurements, to mitigate potential harm to the tested networks or servers, we limit the number of spoofed packets to 1000.
+
+## Approach Validation
+We conduct experiments to verify the effectiveness of our approach in identifying the IPID increase caused by spoofed packets.
+
+In scenarios involving idle port scan and SAV measurement, tools like Nmap [5] and SMap [6] detect global IPID increments resulting from spoofed packets at a single time point. In contrast, techniques for censorship assessment or related studies, such as Augur [7] and Ensafi [8], analyze at least two IPID increments, taking into account potential TCP retransmissions.
+
+We generate various datasets of IPID time series, simulating distinct scenarios in port scanning/SAV inference and censorship measurement.
+These datasets comprise IPID time series with no IPID increments induced by spoofed packets, with a single IPID increment, or with two IPID increments: one arising from the initial spoofed packets and the other from the SYN ACK retransmission.
+
+We collect IPID time series from 5,000 randomly selected hosts with global IPID counters, disregarding their predictability.
+
+Assuming that the first retransmission timeout (RTO) is 3s.
+We make 30 predictions for IPID time series from a specific host before spoofed packet injection.
+To ensure the collected time series is long enough to cover two IPID increments driven by spoofed packets, we send 39 probes (four more than in previous experiments) to the 5,000 servers at a rate of one packet per second. 
+
+Afterward, we generate new datasets based on the initial data for experiments.
+During measurements, assuming that we send spoofed packets within the $35^{th}$ second, the induced IPID increment (e.g., in cases of open ports) would occur at the $35^{th}$ second.
+However, in censorship measurement, when the censor device is deployed in the outbound direction, it triggers TCP retransmission, resulting in the second IPID increment. As mentioned earlier, we assume that the first RTO value is 3s. The second increment would occur at the $38^{th}$ second.
+
+We estimate the number of spoofed packets ($n_{s}$) using the formula: $n_{s} = 1 + (-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max})$.
+Since our experiments are conducted on offline data, there is no need to limit the value of $n_{s}$.
+
+Initially, we synthesize a dataset by incrementing the IPID value by $n_{s}$ from the $35^{th}$ second to the end for each time series in the initial dataset.
+Subsequently, based on this synthesized dataset, we generate another new dataset by increasing the IPID value by $n_{s}$ at the $38^{th}$ second, ensuring each IPID time series in this set contains two IPID increases.
+
+Fig. \ref{fig:app_val_diff_cases} depicts an example of an IPID time series in the initial dataset, along with its variations in the two synthesized datasets.
+Note that, we utilize the initial dataset to verify that no IPID increments are caused by spoofed packets.
+Table \ref{tab:app_val_implications} demonstrates the implications of three sets across different measurement cases.
+
+We then proceed to verify the effectiveness of our approach in identifying IPID increases across various scenarios. For this purpose, we utilize both the initial dataset and the dataset containing a single IPID increment to assess its performance in port scanning or SAV assessment. Additionally, all three datasets are employed to examine its validity in censorship measurement. Fig. \ref{fig:port_scan_fpr_fnr} illustrates false positive rates (FPR) and false negative rates (FNR) varying across different MAE, RMSE, and SMAPE values
+in the context of port scanning or SAV inference. In port scanning, the FPR denotes the rate of mistakenly identifying closed ports as open, while in SAV inference, it indicates the rate at which non-IP-spoofable networks are falsely classified as IP-spoofable. Each data point, represented by (MAE/RMSE/SMAPE, FPR/FNR), showcases the corresponding FPR/FNR value under the condition that the prediction error of IPID time series is lower than the corresponding MAE/RMSE/SMAPE value. Notably, we observe a convergence of FPR and FNR values to around 8\% and 5\%, respectively, as the MAE, RMSE, and SMAPE values increase. Additionally, IPID time series with lower prediction errors (i.e., higher predictability) could yield lower FPR/FNR values (e.g., 7\% FPR and 2\% FNR under an MAE value less than 60). This observation aligns with our expectation that using well-predictable IPID counters can result in higher measurement accuracy.
+
+Fig. \ref{fig:censor_measure_accs} and Fig. \ref{fig:censor_measure_fpr_fnr} illustrate the validation results using datasets associated with censor measurement, including accuracy values across three states: "No blocking", "Ingress blocking", and "Egress blocking", as well as the false positive rate (FPR) and false negative rate (FNR) values.
+In this context, the FPR is defined as the rate at which networks without deploying censor devices are incorrectly identified as having censorship deployment.
+Similarly, higher accuracy and lower FPR/FNR are achieved when the IPID time series exhibits a smaller MAE/RMSE/SMAPE value.
+For instance, when the SMAPE value is below 0.5\%, the resulting FPR and FNR are approximately 10\% and 5\%, respectively. Note that, with a limit of 10 spoofed packets sent, the FPR and FNR could be even lower, e.g., at 8\% and 4\% in censorship measurement, respectively. This is because this limit can mitigate the impact of smaller SMAPE values induced by larger IPID values. We will clarify this in detail in Section \ref{sec:predictability}.
