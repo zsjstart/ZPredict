@@ -48,10 +48,11 @@ We conduct a left-tailed Z-test with a significance level of $\alpha$ = 0.05 to 
 Next, we present a theoretical deduction of the minimum number of spoofed packets required to perturb the counter.
 There is $\Phi (\frac{e_{N}-\mu}{\sigma}) < \alpha$ in the case of
 successful IPID perturbation, with $e_{N} = \hat{x_{N}}-(x_{N}+n_{s})$.
-Then we derive the value of $n_{s}$ as follows: $$\begin{aligned}
-    \frac{e_{N}-\mu}{\sigma} < \Phi ^{-1}(\alpha) \\
-    \hat{x}_{N}-x_{N}-n_{s} <  \Phi ^{-1}(\alpha)*\sigma + \mu  \\
-    n_{s} >  -\Phi ^{-1}(\alpha)*\sigma - \mu + \hat{x}_{N}-x_{N}\end{aligned}$$
+
+Then we derive the value of $n_{s}$ as follows: 
+    $\frac{e_{N}-\mu}{\sigma} < \Phi ^{-1}(\alpha)$
+    $\hat{x_{N}}-x_{N}-n_{s} <  \Phi ^{-1}(\alpha)*\sigma + \mu $
+    $n_{s} >  -\Phi ^{-1}(\alpha)*\sigma - \mu + \hat{x}_{N}-x_{N}\end{aligned}$
 
 We use $e_{max}$, the maximum prediction error in $E$, as the estimated
 value of $\tilde{e}_{N}$ (which equals $\hat{x}_{N}-x_{N}$, with the
