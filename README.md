@@ -40,12 +40,12 @@ We then compute the mean and the standard deviation of $E$, denoted as $\mu$ and
 Since $E$ follows a Gaussian distribution, the variable Z = $\frac{E-\mu}{\sigma}$ conforms to the standard normal distribution of $N(0,1)$.
 
 
-Suppose we send a certain number of spoofed packets, denoted as $n_{s}$, between the ${N-1}_{th}$ and ${N}_{th}$ seconds.
+Suppose we send a certain number of spoofed packets, denoted as $n_{s}$, within the N-second interval.
 When successful perturbations on the counter occur, it causes the value of $e_{N}$ to decrease.
 As a result, the $e_{N}$ value would fall in the left tail of the distribution.
 We conduct a left-tailed Z-test with a significance level of $\alpha$ = 0.05 to identify anomalous IPID value increases resulting from spoofed packets.
 
-When the number of spoofed packets sent ($n_{s}$) is small, it may not trigger the anomaly detection in the Z-test. Next, we present a theoretical deduction of the minimum number of spoofed packets required to perturb the counter.
+Next, we present a theoretical deduction of the minimum number of spoofed packets required to perturb the counter.
 There is $\Phi (\frac{e_{N}-\mu}{\sigma}) < \alpha$ in the case of successful IPID perturbation, with $e_{N} = \hat{x_{N}}-(x_{N}+n_{s})$. Then we derive the value of $n_{s}$ as follows:
 \begin{align}
     \frac{e_{N}-\mu}{\sigma} < \Phi ^{-1}(\alpha) \\
