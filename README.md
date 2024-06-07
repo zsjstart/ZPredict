@@ -1,4 +1,4 @@
-!# ZPredict
+# ZPredict
 We develop a tool called ZPredict, which leverages machine learning methodologies for two key tasks: IPID assignment identification, which distinguishes between different IPID assignment mechanisms, and IPID value prediction, which enables the learning of the historical changing behavior of an IPID counter to predict its future IPID values.
 ZPredict can be applied for various network measurements, including idle port scanning, IP-level censorship measurement, and inbound SAV measurement.
 
