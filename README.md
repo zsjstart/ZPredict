@@ -61,7 +61,7 @@ value of $\hat{x_{N}}-x_{N}$, with the
 ideal value being 0) to yield a relatively large $n_{s}$ value, ensuring
 the triggering of the anomaly detection. We also ensure that we send at
 least one spoofed packet. Then, we define
-$n_{s} = 1 + (-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max})$.
+$n_{s} = 1 + [-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max}]$.
 
 ### Noting that during real-world measurements, to mitigate potential harm to the tested networks or servers, the test will terminate if the number of required spoofed packets exceeds 1000.
 
@@ -83,7 +83,7 @@ Afterward, we generate new datasets based on the initial data for experiments.
 Assuming that we send spoofed packets within the $35^{th}$ second, the induced IPID increment (e.g., in cases of open ports) would occur at the $35^{th}$ second.
 However, in censorship measurement, when the censor device is deployed in the outbound direction, it triggers TCP retransmission, resulting in the second IPID increment. As mentioned earlier, we assume that the first RTO value is 3s. The second increment would occur at the $38^{th}$ second.
 
-We estimate the number of spoofed packets ($n_{s}$) using the formula: $n_{s} = 1 + (-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max})$.
+We estimate the number of spoofed packets ($n_{s}$) using the formula: $n_{s} = 1 + [-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max}]$.
 Since our experiments are conducted on offline data, there is no need to limit the value of $n_{s}$.
 
 Initially, we synthesize a dataset by incrementing the IPID value by $n_{s}$ from the $35^{th}$ second to the end for each time series in the initial dataset.
