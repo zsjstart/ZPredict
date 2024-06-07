@@ -60,7 +60,7 @@ the triggering of the anomaly detection. We also ensure that we send at
 least one spoofed packet. Then, we define
 $n_{s} = 1 + (-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max})$.
 
-#### Noting that, during real-world measurements, to mitigate potential harm to the tested networks or servers, we limit the number of spoofed packets to 1000.
+#### Noting that during real-world measurements, to mitigate potential harm to the tested networks or servers, the test will terminate if the number of required spoofed packets exceeds 1000.
 
 ## Approach Validation
 We conduct experiments to verify the effectiveness of our approach in identifying the IPID increase caused by spoofed packets.
@@ -77,7 +77,7 @@ We make 30 predictions for IPID time series from a specific host before spoofed 
 To ensure the collected time series is long enough to cover two IPID increments driven by spoofed packets, we send 39 probes (four more than in previous experiments) to the 5,000 servers at a rate of one packet per second. 
 
 Afterward, we generate new datasets based on the initial data for experiments.
-During measurements, assuming that we send spoofed packets within the $35^{th}$ second, the induced IPID increment (e.g., in cases of open ports) would occur at the $35^{th}$ second.
+Assuming that we send spoofed packets within the $35^{th}$ second, the induced IPID increment (e.g., in cases of open ports) would occur at the $35^{th}$ second.
 However, in censorship measurement, when the censor device is deployed in the outbound direction, it triggers TCP retransmission, resulting in the second IPID increment. As mentioned earlier, we assume that the first RTO value is 3s. The second increment would occur at the $38^{th}$ second.
 
 We estimate the number of spoofed packets ($n_{s}$) using the formula: $n_{s} = 1 + (-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max})$.
@@ -85,6 +85,8 @@ Since our experiments are conducted on offline data, there is no need to limit t
 
 Initially, we synthesize a dataset by incrementing the IPID value by $n_{s}$ from the $35^{th}$ second to the end for each time series in the initial dataset.
 Subsequently, based on this synthesized dataset, we generate another new dataset by increasing the IPID value by $n_{s}$ at the $38^{th}$ second, ensuring each IPID time series in this set contains two IPID increases.
+![Alt text](images/example.png)
+
 
 Fig. \ref{fig:app_val_diff_cases} depicts an example of an IPID time series in the initial dataset, along with its variations in the two synthesized datasets.
 Note that, we utilize the initial dataset to verify that no IPID increments are caused by spoofed packets.
