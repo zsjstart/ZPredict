@@ -51,12 +51,11 @@ successful IPID perturbation, with $e_{N} = \hat{x_{N}}-(x_{N}+n_{s})$.
 
 Then we derive the value of $n_{s}$ as follows: 
     $\frac{e_{N}-\mu}{\sigma} < \Phi ^{-1}(\alpha)$
-    $\hat{x_{N}}-x_{N}-n_{s} <  \Phi ^{-1}(\alpha)*\sigma + \mu $
-    $n_{s} >  -\Phi ^{-1}(\alpha)*\sigma - \mu + \hat{x}_{N}-x_{N}\end{aligned}$
+    $n_{s} >  -\Phi ^{-1}(\alpha)*\sigma - \mu + \hat{x_{N}}-x_{N}\end{aligned}$
 
 We use $e_{max}$, the maximum prediction error in $E$, as the estimated
 value of $\tilde{e}_{N}$ (which equals $\hat{x}_{N}-x_{N}$, with the
 ideal value being 0) to yield a relatively large $n_{s}$ value, ensuring
 the triggering of the anomaly detection. We also ensure that we send at
 least one spoofed packet. Then, we define
-$n_{s} = 1 + \round{-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max}}$.
+$n_{s} = 1 + (-\Phi ^{-1}(\alpha)*\sigma - \mu + e_{max})$.
