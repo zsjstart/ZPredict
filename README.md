@@ -51,7 +51,7 @@ successful IPID perturbation, with $e_{N} = \hat{x_{N}}-(x_{N}+n_{s})$.
 
 Then we derive the value of $n_{s}$ as follows: 
     $\frac{e_{N}-\mu}{\sigma} < \Phi ^{-1}(\alpha)$
-    $n_{s} >  -\Phi ^{-1}(\alpha)*\sigma - \mu + \hat{x_{N}}-x_{N}\end{aligned}$
+    $n_{s} >  -\Phi ^{-1}(\alpha)*\sigma - \mu + \hat{x_{N}}-x_{N}$
 
 We use $e_{max}$, the maximum prediction error in $E$, as the estimated
 value of $\tilde{e}_{N}$ (which equals $\hat{x}_{N}-x_{N}$, with the
