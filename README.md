@@ -116,4 +116,5 @@ In this context, the FPR is defined as the rate at which networks without deploy
 [5] Ensafi, Roya, et al. "Detecting intentional packet drops on the Internet via TCP/IP side channels." Passive and Active Measurement: 15th International Conference, PAM 2014, Los Angeles, CA, USA, March 10-11, 2014, Proceedings 15. Springer International Publishing, 2014.
 
 [6] Pearce, Paul, et al. "Augur: Internet-wide detection of connectivity disruptions." 2017 IEEE Symposium on Security and Privacy (SP). IEEE, 2017.
+
 [7] Schulmann, Haya, and Shujie Zhao. "ZPredict: ML-Based IPID Side-channel Measurements." ACM Transactions on Privacy and Security (2024).
