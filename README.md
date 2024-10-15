@@ -95,7 +95,7 @@ We then proceed to verify the effectiveness of our approach in identifying IPID 
 ![Figure 1](images/port_scan_fpr_fnr_plot.pdf) illustrates false positive rates (FPR) and false negative rates (FNR) varying across different MAE, RMSE, and SMAPE values
 in the context of port scanning or SAV inference. In port scanning, the FPR denotes the rate of mistakenly identifying closed ports as open, while in SAV inference, it indicates the rate at which non-IP-spoofable networks are falsely classified as IP-spoofable.
 <p align="center">
-  <img src="images/port_scan_fpr_fnr_plot.pdf" width="3500" title="">
+  <img src="https://github.com/zsjstart/ZPredict/blob/main/images/port_scan_fpr_fnr_plot.pdf" width="3500" title="">
 </p>
 
 
